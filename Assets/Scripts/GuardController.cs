@@ -16,7 +16,7 @@ public class GuardController : MonoBehaviour
     public float attentionIncrease = 25f;
     public float attentionDecay = 5f;
 
-    private float baseSpeedZ; // Запоминаем изначальную скорость
+    private float baseSpeedZ;
     private Transform player;
     private bool isChasing = true;
 
@@ -26,7 +26,7 @@ public class GuardController : MonoBehaviour
 
     void Start()
     {
-        baseSpeedZ = speedZ; // Запоминаем базовую скорость
+        baseSpeedZ = speedZ;
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
         guardRenderer = GetComponent<Renderer>();
@@ -34,21 +34,23 @@ public class GuardController : MonoBehaviour
 
     void Update()
     {
-        // 1. Логика внимания (работает всегда, даже если дали взятку)
+        // 1. Логика внимания
         if (attentionLevel > 0 && !isBribed)
         {
             attentionLevel -= attentionDecay * Time.deltaTime;
             attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
         }
 
-        // 2. Ускорение при высоком внимании
+        // 2. Ускорение и сокращение дистанции при высоком внимании
         if (attentionLevel > 50f)
         {
-            speedZ = baseSpeedZ * 1.3f; // Ускоряемся на 30%
+            speedZ = baseSpeedZ * 1.5f; // Ускоряемся на 50% (чтобы точно догнать)
+            followDistance = 1f; // Подбираемся ближе
         }
         else
         {
             speedZ = baseSpeedZ;
+            followDistance = 3f; // Возвращаем дистанцию
         }
 
         // 3. Логика взятки
@@ -81,26 +83,27 @@ public class GuardController : MonoBehaviour
         }
     }
 
-    // --- НОВЫЙ МЕТОД: Получение взятки ---
     public void Bribe()
     {
         isBribed = true;
         bribeTimer = bribeDuration;
         if (guardRenderer != null) guardRenderer.material.color = Color.yellow;
-        Debug.Log("Стражник получил взятку!");
     }
 
-    // --- НОВЫЙ МЕТОД: Реакция на удар игрока ---
     public void OnPlayerHit()
     {
         attentionLevel += attentionIncrease;
         attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
-        Debug.Log("Внимание стражи: " + attentionLevel + "%");
     }
 
     void CatchPlayer()
     {
-        Debug.Log("Стражник поймал игрока! Game Over.");
+        if (!isChasing) return;
+
         isChasing = false;
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.GameOver();
+        }
     }
 }

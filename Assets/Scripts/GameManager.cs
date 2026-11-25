@@ -1,14 +1,21 @@
 using UnityEngine;
-using UnityEngine.SceneManagement; // Понадобится для перезапуска
+using UnityEngine.SceneManagement;
+using TMPro; // Обязательно для работы с текстом TextMeshPro
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance; // Синглтон (чтобы обращаться из любого скрипта)
+    public static GameManager Instance;
+
+    [Header("UI Настройки")]
+    public GameObject gameOverPanel;
+    public TMP_Text finalCoinsText; // Ссылка на текст с монетами
 
     public int totalCoins = 0;
+    private bool isGameOver = false;
 
     void Awake()
     {
+        // Настраиваем синглтон
         if (Instance == null)
         {
             Instance = this;
@@ -21,10 +28,11 @@ public class GameManager : MonoBehaviour
 
     public void AddCoin(int amount)
     {
+        if (isGameOver) return; // Если игра кончена, монеты не собираются
         totalCoins += amount;
-        Debug.Log("Монет собрано: " + totalCoins);
 
-        // Здесь позже мы будем обновлять UI (счетчик на экране)
+        // Здесь можно добавить обновление UI в реальном времени (счетчик в углу)
+        // Debug.Log("Монет собрано: " + totalCoins);
     }
 
     public bool SpendCoins(int amount)
@@ -32,9 +40,42 @@ public class GameManager : MonoBehaviour
         if (totalCoins >= amount)
         {
             totalCoins -= amount;
-            Debug.Log("Потрачено монет. Остаток: " + totalCoins);
-            return true; // Успешно потратили
+            return true;
         }
-        return false; // Не хватает монет
+        return false;
+    }
+
+    // --- Метод окончания игры ---
+    public void GameOver()
+    {
+        if (isGameOver) return; // Защита от двойного вызова
+        isGameOver = true;
+
+        Debug.Log("Игра окончена! Игрок пойман.");
+
+        // 1. Показываем панель Game Over
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(true);
+        }
+
+        // 2. Обновляем текст с монетами
+        if (finalCoinsText != null)
+        {
+            // Используем интерполяцию строк для красивого вывода
+            finalCoinsText.text = $"Монет собрано: {totalCoins}";
+        }
+
+        // 3. Замораживаем игру (останавливаем время и физику)
+        Time.timeScale = 0f;
+    }
+
+    // --- Метод перезапуска ---
+    public void RestartGame()
+    {
+        Time.timeScale = 1f; // ОБЯЗАТЕЛЬНО возвращаем время перед перезагрузкой!
+
+        // Перезагружаем текущую сцену
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
