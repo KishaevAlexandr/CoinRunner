@@ -44,7 +44,7 @@ public class PlayerController : MonoBehaviour
 
     void HandleInput()
     {
-        // 1. Управление с клавиатуры (через Input System)
+        // 1. Управление с клавиатуры
         var keyboard = Keyboard.current;
         if (keyboard != null)
         {
@@ -73,13 +73,11 @@ public class PlayerController : MonoBehaviour
                 {
                     if (Mathf.Abs(swipeDelta.x) > Mathf.Abs(swipeDelta.y))
                     {
-                        // Свайп влево/вправо
                         if (swipeDelta.x > 0) MoveRight();
                         else MoveLeft();
                     }
                     else
                     {
-                        // Свайп вверх/вниз
                         if (swipeDelta.y > 0) Jump();
                         else StartSlide();
                     }
@@ -91,14 +89,10 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        // 1. Движение вперед 
         float moveZ = forwardSpeed;
-
-        // 2. Плавное перемещение по X к нужной полосе
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
-        //Гравитация
         if (controller.isGrounded && velocity.y < 0)
         {
             velocity.y = -2f;
@@ -106,8 +100,6 @@ public class PlayerController : MonoBehaviour
         velocity.y += gravity * Time.deltaTime;
 
         Vector3 finalMove = new Vector3(xMove / Time.deltaTime, velocity.y, moveZ);
-
-        // Применяем движение
         controller.Move(finalMove * Time.deltaTime);
     }
 
@@ -147,9 +139,23 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // --- ИСПРАВЛЕННЫЙ МЕТОД ВЗЯТКИ ---
     void Bribe()
     {
-        // Заглушка для будущей механики взятки
-        Debug.Log("Попытка дать взятку! Монет потрачено: 10");
+        // 1. Проверяем, есть ли GameManager и хватает ли монет (10 штук)
+        if (GameManager.Instance != null && GameManager.Instance.SpendCoins(10))
+        {
+            // 2. Если монеты списались, ищем стражника на сцене
+            GuardController guard = FindFirstObjectByType<GuardController>();
+            if (guard != null)
+            {
+                // 3. Передаем стражнику команду "стоять"
+                guard.Bribe();
+            }
+        }
+        else
+        {
+            Debug.Log("Недостаточно монет для взятки! Нужно 10.");
+        }
     }
 }
