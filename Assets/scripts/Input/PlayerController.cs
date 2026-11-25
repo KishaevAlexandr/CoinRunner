@@ -156,7 +156,7 @@ public class PlayerController : MonoBehaviour
 
     void Bribe()
     {
-        if (GameManager.Instance != null && GameManager.Instance.SpendCoins(10))
+        if (GameManager.Instance != null && GameManager.Instance.SpendCoins(30))
         {
             GuardController guard = FindFirstObjectByType<GuardController>();
             if (guard != null) guard.Bribe();
