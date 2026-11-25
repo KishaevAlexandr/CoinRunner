@@ -2,16 +2,15 @@ using UnityEngine;
 
 public class Obstacle : MonoBehaviour
 {
-    void OnControllerColliderHit(ControllerColliderHit hit)
+    void OnTriggerEnter(Collider other)
     {
-        // Этот метод работает специально для Character Controller
-        if (hit.gameObject.CompareTag("Player"))
+        if (other.CompareTag("Player"))
         {
-            // Пока просто выводим в консоль
-            Debug.Log("Игрок врезался в препятствие!");
-
-            // В будущем здесь мы будем уменьшать выносливость или 
-            // повышать уровень внимания стражи
+            PlayerController player = other.GetComponent<PlayerController>();
+            if (player != null)
+            {
+                player.TakeHit();
+            }
         }
     }
 }

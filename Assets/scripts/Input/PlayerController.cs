@@ -5,7 +5,8 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Настройки движения")]
     public float forwardSpeed = 10f;
-    public float laneDistance = 3f; // Расстояние между полосами
+    public float currentSpeed; // Текущая скорость (меняется при ударе)
+    public float laneDistance = 3f;
     public float laneChangeSpeed = 15f;
 
     [Header("Настройки прыжка")]
@@ -14,22 +15,22 @@ public class PlayerController : MonoBehaviour
 
     [Header("Настройки подката")]
     public float slideDuration = 0.8f;
-    public float slideHeight = 0.5f; // Высота коллайдера при подкате
+    public float slideHeight = 0.5f;
 
     private CharacterController controller;
     private Vector3 velocity;
-    private int currentLane = 1; // 0 - лево, 1 - центр, 2 - право
+    private int currentLane = 1;
     private bool isSliding = false;
     private float slideTimer = 0f;
     private float originalHeight;
     private Vector3 originalCenter;
 
-    // Для свайпов
     private Vector2 touchStartPos;
     private bool isSwiping = false;
 
     void Start()
     {
+        currentSpeed = forwardSpeed; // Инициализируем скорость
         controller = GetComponent<CharacterController>();
         originalHeight = controller.height;
         originalCenter = controller.center;
@@ -44,7 +45,6 @@ public class PlayerController : MonoBehaviour
 
     void HandleInput()
     {
-        // 1. Управление с клавиатуры
         var keyboard = Keyboard.current;
         if (keyboard != null)
         {
@@ -55,7 +55,6 @@ public class PlayerController : MonoBehaviour
             if (keyboard.eKey.wasPressedThisFrame) Bribe();
         }
 
-        // 2. Управление свайпами (для мобильных устройств)
         if (Touchscreen.current != null)
         {
             var touch = Touchscreen.current.primaryTouch;
@@ -69,7 +68,7 @@ public class PlayerController : MonoBehaviour
                 Vector2 touchEndPos = touch.position.ReadValue();
                 Vector2 swipeDelta = touchEndPos - touchStartPos;
 
-                if (swipeDelta.magnitude > 50) // Минимальная длина свайпа
+                if (swipeDelta.magnitude > 50)
                 {
                     if (Mathf.Abs(swipeDelta.x) > Mathf.Abs(swipeDelta.y))
                     {
@@ -89,7 +88,7 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        float moveZ = forwardSpeed;
+        float moveZ = currentSpeed; // Используем текущую скорость
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
@@ -139,23 +138,38 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // --- ИСПРАВЛЕННЫЙ МЕТОД ВЗЯТКИ ---
     void Bribe()
     {
-        // 1. Проверяем, есть ли GameManager и хватает ли монет (10 штук)
         if (GameManager.Instance != null && GameManager.Instance.SpendCoins(10))
         {
-            // 2. Если монеты списались, ищем стражника на сцене
             GuardController guard = FindFirstObjectByType<GuardController>();
-            if (guard != null)
-            {
-                // 3. Передаем стражнику команду "стоять"
-                guard.Bribe();
-            }
+            if (guard != null) guard.Bribe();
         }
         else
         {
-            Debug.Log("Недостаточно монет для взятки! Нужно 10.");
+            Debug.Log("Недостаточно монет для взятки!");
         }
+    }
+
+    // --- НОВЫЙ МЕТОД: Реакция на удар ---
+    public void TakeHit()
+    {
+        // 1. Временно замедляем игрока (эффект спотыкания)
+        currentSpeed = forwardSpeed * 0.5f;
+        Invoke(nameof(RecoverSpeed), 0.5f); // Через 0.5 сек возвращаем скорость
+
+        // 2. Сообщаем стражнику, что игрок ошибся
+        GuardController guard = FindFirstObjectByType<GuardController>();
+        if (guard != null)
+        {
+            guard.OnPlayerHit();
+        }
+
+        Debug.Log("Игрок врезался! Стражник ускоряется.");
+    }
+
+    void RecoverSpeed()
+    {
+        currentSpeed = forwardSpeed;
     }
 }

@@ -3,14 +3,20 @@ using UnityEngine;
 public class GuardController : MonoBehaviour
 {
     [Header("Настройки движения")]
-    public float speedZ = 9f; // Скорость догона (чуть медленнее игрока)
-    public float speedX = 15f; // Скорость перестроения (сделал выше, чтобы успевал)
+    public float speedZ = 9f;
+    public float speedX = 15f;
     public float catchDistance = 1.5f;
-    public float followDistance = 3f; // Дистанция позади игрока
+    public float followDistance = 3f;
 
     [Header("Настройки взятки")]
     public float bribeDuration = 3f;
 
+    [Header("Настройки внимания")]
+    public float attentionLevel = 0f;
+    public float attentionIncrease = 25f;
+    public float attentionDecay = 5f;
+
+    private float baseSpeedZ; // Запоминаем изначальную скорость
     private Transform player;
     private bool isChasing = true;
 
@@ -20,6 +26,7 @@ public class GuardController : MonoBehaviour
 
     void Start()
     {
+        baseSpeedZ = speedZ; // Запоминаем базовую скорость
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
         guardRenderer = GetComponent<Renderer>();
@@ -27,6 +34,24 @@ public class GuardController : MonoBehaviour
 
     void Update()
     {
+        // 1. Логика внимания (работает всегда, даже если дали взятку)
+        if (attentionLevel > 0 && !isBribed)
+        {
+            attentionLevel -= attentionDecay * Time.deltaTime;
+            attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
+        }
+
+        // 2. Ускорение при высоком внимании
+        if (attentionLevel > 50f)
+        {
+            speedZ = baseSpeedZ * 1.3f; // Ускоряемся на 30%
+        }
+        else
+        {
+            speedZ = baseSpeedZ;
+        }
+
+        // 3. Логика взятки
         if (isBribed)
         {
             bribeTimer -= Time.deltaTime;
@@ -40,35 +65,37 @@ public class GuardController : MonoBehaviour
 
         if (!isChasing || player == null) return;
 
-        // 1. Вычисляем целевую позицию: мы хотим быть на той же линии X, что и игрок, но позади по Z
+        // 4. Движение
         float targetX = player.position.x;
         float targetZ = player.position.z - followDistance;
 
-        // 2. Плавно двигаем стражника по X (в сторону игрока)
-        // Мы используем Lerp для плавности, но с высокой скоростью
         float newX = Mathf.Lerp(transform.position.x, targetX, speedX * Time.deltaTime);
-
-        // 3. Плавно двигаем по Z (догоняем)
         float newZ = Mathf.MoveTowards(transform.position.z, targetZ, speedZ * Time.deltaTime);
 
-        // Применяем новую позицию
         transform.position = new Vector3(newX, transform.position.y, newZ);
 
-        // 4. Проверка поимки
+        // 5. Проверка поимки
         if (Vector3.Distance(transform.position, player.position) < catchDistance)
         {
             CatchPlayer();
         }
     }
 
+    // --- НОВЫЙ МЕТОД: Получение взятки ---
     public void Bribe()
     {
         isBribed = true;
         bribeTimer = bribeDuration;
-
         if (guardRenderer != null) guardRenderer.material.color = Color.yellow;
-
         Debug.Log("Стражник получил взятку!");
+    }
+
+    // --- НОВЫЙ МЕТОД: Реакция на удар игрока ---
+    public void OnPlayerHit()
+    {
+        attentionLevel += attentionIncrease;
+        attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
+        Debug.Log("Внимание стражи: " + attentionLevel + "%");
     }
 
     void CatchPlayer()
