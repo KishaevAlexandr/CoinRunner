@@ -3,20 +3,18 @@ using UnityEngine;
 public class GuardController : MonoBehaviour
 {
     [Header("Настройки движения")]
-    public float speedZ = 9f;
-    public float speedX = 15f;
+    public float followSpeed = 15f;
     public float catchDistance = 1.5f;
-    public float followDistance = 3f;
+    public float normalDistance = 4f;
+
+    [Header("Настройки наказания")]
+    public int maxStrikes = 3;
+    public float lungeDistance = 2f;
+    public float recoverSpeed = 1.5f;
 
     [Header("Настройки взятки")]
     public float bribeDuration = 3f;
 
-    [Header("Настройки внимания")]
-    public float attentionLevel = 0f;
-    public float attentionIncrease = 25f;
-    public float attentionDecay = 5f;
-
-    private float baseSpeedZ;
     private Transform player;
     private bool isChasing = true;
 
@@ -24,36 +22,23 @@ public class GuardController : MonoBehaviour
     private float bribeTimer = 0f;
     private Renderer guardRenderer;
 
+    private float currentDistance;
+    private int strikes = 0;
+
     void Start()
     {
-        baseSpeedZ = speedZ;
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
         if (playerObj != null) player = playerObj.transform;
         guardRenderer = GetComponent<Renderer>();
+
+        currentDistance = normalDistance;
     }
 
     void Update()
     {
-        // 1. Логика внимания
-        if (attentionLevel > 0 && !isBribed)
-        {
-            attentionLevel -= attentionDecay * Time.deltaTime;
-            attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
-        }
+        if (!isChasing || player == null) return;
 
-        // 2. Ускорение и сокращение дистанции при высоком внимании
-        if (attentionLevel > 50f)
-        {
-            speedZ = baseSpeedZ * 1.5f; // Ускоряемся на 50% (чтобы точно догнать)
-            followDistance = 1f; // Подбираемся ближе
-        }
-        else
-        {
-            speedZ = baseSpeedZ;
-            followDistance = 3f; // Возвращаем дистанцию
-        }
-
-        // 3. Логика взятки
+        // 1. Логика взятки
         if (isBribed)
         {
             bribeTimer -= Time.deltaTime;
@@ -65,18 +50,32 @@ public class GuardController : MonoBehaviour
             return;
         }
 
-        if (!isChasing || player == null) return;
+        // 2. Постепенно восстанавливаем дистанцию, если игрок бежит чисто
+        if (currentDistance < normalDistance && strikes < maxStrikes)
+        {
+            currentDistance += recoverSpeed * Time.deltaTime;
+            currentDistance = Mathf.Min(currentDistance, normalDistance);
+        }
 
-        // 4. Движение
-        float targetX = player.position.x;
-        float targetZ = player.position.z - followDistance;
+        // 3. Логика, если игрок набрал 3 ошибки
+        if (strikes >= maxStrikes)
+        {
+            // Страж в ярости: он летит прямо на игрока на максимальной скорости
+            currentDistance = 0f;
+            followSpeed = 30f; // Резко ускоряем его, чтобы он визуально догнал
+        }
 
-        float newX = Mathf.Lerp(transform.position.x, targetX, speedX * Time.deltaTime);
-        float newZ = Mathf.MoveTowards(transform.position.z, targetZ, speedZ * Time.deltaTime);
+        // 4. Целевая позиция
+        Vector3 targetPosition = new Vector3(
+            player.position.x,
+            transform.position.y,
+            player.position.z - currentDistance
+        );
 
-        transform.position = new Vector3(newX, transform.position.y, newZ);
+        // 5. Движение к цели
+        transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
 
-        // 5. Проверка поимки
+        // 6. Проверка физической поимки
         if (Vector3.Distance(transform.position, player.position) < catchDistance)
         {
             CatchPlayer();
@@ -87,23 +86,38 @@ public class GuardController : MonoBehaviour
     {
         isBribed = true;
         bribeTimer = bribeDuration;
+
+        // При взятке сбрасываем ошибки и ярость
+        strikes = 0;
+        followSpeed = 15f;
+        currentDistance = normalDistance;
+
         if (guardRenderer != null) guardRenderer.material.color = Color.yellow;
     }
 
     public void OnPlayerHit()
     {
-        attentionLevel += attentionIncrease;
-        attentionLevel = Mathf.Clamp(attentionLevel, 0f, 100f);
+        strikes++;
+        Debug.Log("Ошибок подряд: " + strikes);
+
+        // Страж делает рывок вперед
+        currentDistance -= lungeDistance;
+        currentDistance = Mathf.Clamp(currentDistance, 0f, normalDistance);
+    }
+
+    public void OnPlayerSafe()
+    {
+        if (strikes > 0)
+        {
+            strikes = 0;
+            followSpeed = 15f; // Возвращаем обычную скорость
+        }
     }
 
     void CatchPlayer()
     {
         if (!isChasing) return;
-
         isChasing = false;
-        if (GameManager.Instance != null)
-        {
-            GameManager.Instance.GameOver();
-        }
+        if (GameManager.Instance != null) GameManager.Instance.GameOver();
     }
 }

@@ -266,6 +266,7 @@ GameObject:
   m_Component:
   - component: {fileID: 239242234}
   - component: {fileID: 239242233}
+  - component: {fileID: 239242235}
   m_Layer: 0
   m_Name: LevelManager
   m_TagString: Untagged
@@ -306,6 +307,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &239242235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 239242232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b523381147de1244bb4b2f0199fa788, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  player: {fileID: 1123872235}
+  speedIncreaseInterval: 10
+  speedIncreaseAmount: 1.5
+  maxSpeed: 30
 --- !u!1 &255265705
 GameObject:
   m_ObjectHideFlags: 0
@@ -1128,13 +1145,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   forwardSpeed: 10
-  currentSpeed: 0
   laneDistance: 3
   laneChangeSpeed: 15
   jumpForce: 3
   gravity: -20
   slideDuration: 0.8
   slideHeight: 0.5
+  safeThreshold: 3
 --- !u!23 &1123872236
 MeshRenderer:
   m_ObjectHideFlags: 0

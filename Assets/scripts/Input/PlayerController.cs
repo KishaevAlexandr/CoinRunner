@@ -5,7 +5,6 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Настройки движения")]
     public float forwardSpeed = 10f;
-    public float currentSpeed; // Текущая скорость (меняется при ударе)
     public float laneDistance = 3f;
     public float laneChangeSpeed = 15f;
 
@@ -16,6 +15,9 @@ public class PlayerController : MonoBehaviour
     [Header("Настройки подката")]
     public float slideDuration = 0.8f;
     public float slideHeight = 0.5f;
+
+    [Header("Настройки безопасности")]
+    public float safeThreshold = 3f; // Сколько секунд без ошибок сбрасывают страйки
 
     private CharacterController controller;
     private Vector3 velocity;
@@ -28,9 +30,11 @@ public class PlayerController : MonoBehaviour
     private Vector2 touchStartPos;
     private bool isSwiping = false;
 
+    private float speedMultiplier = 1f; // Множитель замедления
+    private float safeTimer = 0f; // Таймер чистого бега
+
     void Start()
     {
-        currentSpeed = forwardSpeed; // Инициализируем скорость
         controller = GetComponent<CharacterController>();
         originalHeight = controller.height;
         originalCenter = controller.center;
@@ -41,6 +45,17 @@ public class PlayerController : MonoBehaviour
         HandleInput();
         MovePlayer();
         HandleSlide();
+
+        // --- Логика сброса ошибок (чистый бег) ---
+        safeTimer += Time.deltaTime;
+        if (safeTimer >= safeThreshold)
+        {
+            GuardController guard = FindFirstObjectByType<GuardController>();
+            if (guard != null) guard.OnPlayerSafe();
+
+            // Сбрасываем таймер, чтобы не вызывать метод каждый кадр после достижения порога
+            safeTimer = 0f;
+        }
     }
 
     void HandleInput()
@@ -88,7 +103,8 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        float moveZ = currentSpeed; // Используем текущую скорость
+        float moveZ = forwardSpeed * speedMultiplier;
+
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
@@ -151,25 +167,24 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // --- НОВЫЙ МЕТОД: Реакция на удар ---
+    // --- Обновленный метод удара ---
     public void TakeHit()
     {
-        // 1. Временно замедляем игрока (эффект спотыкания)
-        currentSpeed = forwardSpeed * 0.5f;
-        Invoke(nameof(RecoverSpeed), 0.5f); // Через 0.5 сек возвращаем скорость
+        // Замедляем игрока
+        speedMultiplier = 0.5f;
+        CancelInvoke(nameof(RecoverSpeed));
+        Invoke(nameof(RecoverSpeed), 0.5f);
 
-        // 2. Сообщаем стражнику, что игрок ошибся
+        // Сообщаем стражу об ошибке
         GuardController guard = FindFirstObjectByType<GuardController>();
-        if (guard != null)
-        {
-            guard.OnPlayerHit();
-        }
+        if (guard != null) guard.OnPlayerHit();
 
-        Debug.Log("Игрок врезался! Стражник ускоряется.");
+        // При ударе таймер чистого бега сбрасывается
+        safeTimer = 0f;
     }
 
     void RecoverSpeed()
     {
-        currentSpeed = forwardSpeed;
+        speedMultiplier = 1f;
     }
 }
