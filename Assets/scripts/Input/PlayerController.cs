@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using TMPro; // Важно: добавляем для TextMeshPro
+using TMPro;
 
 public class PlayerController : MonoBehaviour
 {
@@ -21,7 +21,10 @@ public class PlayerController : MonoBehaviour
     public float safeThreshold = 3f;
 
     [Header("UI Ошибок")]
-    public TMP_Text strikesText; // Ссылка на текст ошибок на экране
+    public TMP_Text strikesText;
+
+    [Header("Визуализация")]
+    public GameObject coinBagPrefab; // Ссылка на префаб мешка с монетами
 
     private CharacterController controller;
     private Vector3 velocity;
@@ -43,7 +46,6 @@ public class PlayerController : MonoBehaviour
         originalHeight = controller.height;
         originalCenter = controller.center;
 
-        // Инициализируем текст при старте
         if (strikesText != null) strikesText.text = "Ошибки: 0/3";
     }
 
@@ -59,10 +61,12 @@ public class PlayerController : MonoBehaviour
         if (safeTimer >= safeThreshold)
         {
             GuardController guard = FindFirstObjectByType<GuardController>();
-            if (guard != null) guard.OnPlayerSafe();
+            if (guard != null)
+            {
+                guard.OnPlayerSafe();
 
-            // Сбрасываем текст ошибок, если бежим чисто
-            if (strikesText != null) strikesText.text = "Ошибки: 0/3";
+                if (strikesText != null) strikesText.text = "Ошибки: 0/3";
+            }
             safeTimer = 0f;
         }
     }
@@ -186,11 +190,8 @@ public class PlayerController : MonoBehaviour
         {
             guard.OnPlayerHit();
 
-            // Обновляем текст ошибок на экране
             if (strikesText != null)
             {
-                // Берем текущее количество страйков из стражника
-                // (Для этого нужно добавить публичное поле strikes в GuardController, если его нет)
                 strikesText.text = "Ошибки: " + guard.strikes + "/3";
             }
         }
