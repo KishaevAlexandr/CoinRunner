@@ -289,6 +289,8 @@ MonoBehaviour:
   chunkPrefab: {fileID: 2525753105352824043, guid: 1733ea4c3b81f174ea9d73b34a50202d, type: 3}
   coinPrefab: {fileID: 2199247546424275698, guid: e81df461864d43648a625f5df37865eb, type: 3}
   obstaclePrefab: {fileID: 3654313804439415887, guid: daf5a767585b5f74ea16c690c0ac72f0, type: 3}
+  highWallPrefab: {fileID: 5384788172450537640, guid: c2a8a384bf4274e4f9b4fb623f16a558, type: 3}
+  lowBarPrefab: {fileID: 3223215770023758013, guid: dc97bea04bbcba448b0a1ebc01eb1c93, type: 3}
   chunkCount: 5
   chunkLength: 20
   player: {fileID: 1123872238}
@@ -321,7 +323,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 1123872235}
   speedIncreaseInterval: 10
-  speedIncreaseAmount: 1.5
+  speedIncreaseAmount: 2
   maxSpeed: 30
 --- !u!1 &255265705
 GameObject:
