@@ -7,27 +7,29 @@ public class MenuManager : MonoBehaviour
     public GameObject startPanel;
     public GameObject pausePanel;
 
-    [Header("Ссылки")]
-    public PlayerController player;
+    [Header("Кнопки")]
+    public GameObject pauseButton; // Ссылка на нашу кнопку паузы
 
     void Start()
     {
-        // При запуске игры ставим паузу и показываем стартовое меню
         Time.timeScale = 0f;
-
         if (startPanel != null) startPanel.SetActive(true);
         if (pausePanel != null) pausePanel.SetActive(false);
+
+        // Прячем кнопку паузы при запуске игры
+        if (pauseButton != null) pauseButton.SetActive(false);
     }
 
-    // Этот метод должен появиться в списке On Click()
     public void StartGame()
     {
-        Debug.Log("Кнопка нажата! Запускаем игру.");
         if (startPanel != null) startPanel.SetActive(false);
+
+        // Показываем кнопку паузы, когда игра началась
+        if (pauseButton != null) pauseButton.SetActive(true);
+
         Time.timeScale = 1f;
     }
 
-    // Методы для паузы (пригодятся позже)
     public void PauseGame()
     {
         if (pausePanel != null) pausePanel.SetActive(true);
