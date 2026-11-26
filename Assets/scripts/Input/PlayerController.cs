@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using TMPro; // Важно: добавляем для TextMeshPro
 
 public class PlayerController : MonoBehaviour
 {
@@ -17,7 +18,10 @@ public class PlayerController : MonoBehaviour
     public float slideHeight = 0.5f;
 
     [Header("Настройки безопасности")]
-    public float safeThreshold = 3f; // Сколько секунд без ошибок сбрасывают страйки
+    public float safeThreshold = 3f;
+
+    [Header("UI Ошибок")]
+    public TMP_Text strikesText; // Ссылка на текст ошибок на экране
 
     private CharacterController controller;
     private Vector3 velocity;
@@ -30,30 +34,35 @@ public class PlayerController : MonoBehaviour
     private Vector2 touchStartPos;
     private bool isSwiping = false;
 
-    private float speedMultiplier = 1f; // Множитель замедления
-    private float safeTimer = 0f; // Таймер чистого бега
+    private float speedMultiplier = 1f;
+    private float safeTimer = 0f;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         originalHeight = controller.height;
         originalCenter = controller.center;
+
+        // Инициализируем текст при старте
+        if (strikesText != null) strikesText.text = "Ошибки: 0/3";
     }
 
     void Update()
     {
+        if (Time.timeScale == 0f) return;
+
         HandleInput();
         MovePlayer();
         HandleSlide();
 
-        // --- Логика сброса ошибок (чистый бег) ---
         safeTimer += Time.deltaTime;
         if (safeTimer >= safeThreshold)
         {
             GuardController guard = FindFirstObjectByType<GuardController>();
             if (guard != null) guard.OnPlayerSafe();
 
-            // Сбрасываем таймер, чтобы не вызывать метод каждый кадр после достижения порога
+            // Сбрасываем текст ошибок, если бежим чисто
+            if (strikesText != null) strikesText.text = "Ошибки: 0/3";
             safeTimer = 0f;
         }
     }
@@ -104,7 +113,6 @@ public class PlayerController : MonoBehaviour
     void MovePlayer()
     {
         float moveZ = forwardSpeed * speedMultiplier;
-
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
@@ -163,23 +171,30 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            Debug.Log("Недостаточно монет для взятки!");
+            Debug.Log("Недостаточно монет для взятки! Нужно 30.");
         }
     }
 
-    // --- Обновленный метод удара ---
     public void TakeHit()
     {
-        // Замедляем игрока
         speedMultiplier = 0.5f;
         CancelInvoke(nameof(RecoverSpeed));
         Invoke(nameof(RecoverSpeed), 0.5f);
 
-        // Сообщаем стражу об ошибке
         GuardController guard = FindFirstObjectByType<GuardController>();
-        if (guard != null) guard.OnPlayerHit();
+        if (guard != null)
+        {
+            guard.OnPlayerHit();
 
-        // При ударе таймер чистого бега сбрасывается
+            // Обновляем текст ошибок на экране
+            if (strikesText != null)
+            {
+                // Берем текущее количество страйков из стражника
+                // (Для этого нужно добавить публичное поле strikes в GuardController, если его нет)
+                strikesText.text = "Ошибки: " + guard.strikes + "/3";
+            }
+        }
+
         safeTimer = 0f;
     }
 

@@ -17,6 +17,9 @@ public class SpeedManager : MonoBehaviour
 
     void Update()
     {
+        // --- ÏĞÎÂÅĞÊÀ ÍÀ ÏÀÓÇÓ ---
+        if (Time.timeScale == 0f) return;
+
         timer += Time.deltaTime;
         if (timer >= speedIncreaseInterval)
         {
@@ -27,7 +30,6 @@ public class SpeedManager : MonoBehaviour
 
     void IncreaseSpeed()
     {
-        // Óñêîğÿåì ÒÎËÜÊÎ èãğîêà
         if (player != null && player.forwardSpeed < maxSpeed)
         {
             player.forwardSpeed += speedIncreaseAmount;

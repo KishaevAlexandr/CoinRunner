@@ -23,7 +23,7 @@ public class GuardController : MonoBehaviour
     private Renderer guardRenderer;
 
     private float currentDistance;
-    private int strikes = 0;
+    public int strikes = 0;
 
     void Start()
     {
@@ -36,9 +36,11 @@ public class GuardController : MonoBehaviour
 
     void Update()
     {
+        // --- ПРОВЕРКА НА ПАУЗУ ---
+        if (Time.timeScale == 0f) return;
+
         if (!isChasing || player == null) return;
 
-        // 1. Логика взятки
         if (isBribed)
         {
             bribeTimer -= Time.deltaTime;
@@ -50,32 +52,26 @@ public class GuardController : MonoBehaviour
             return;
         }
 
-        // 2. Постепенно восстанавливаем дистанцию, если игрок бежит чисто
         if (currentDistance < normalDistance && strikes < maxStrikes)
         {
             currentDistance += recoverSpeed * Time.deltaTime;
             currentDistance = Mathf.Min(currentDistance, normalDistance);
         }
 
-        // 3. Логика, если игрок набрал 3 ошибки
         if (strikes >= maxStrikes)
         {
-            // Страж в ярости: он летит прямо на игрока на максимальной скорости
             currentDistance = 0f;
-            followSpeed = 30f; // Резко ускоряем его, чтобы он визуально догнал
+            followSpeed = 30f;
         }
 
-        // 4. Целевая позиция
         Vector3 targetPosition = new Vector3(
             player.position.x,
             transform.position.y,
             player.position.z - currentDistance
         );
 
-        // 5. Движение к цели
         transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
 
-        // 6. Проверка физической поимки
         if (Vector3.Distance(transform.position, player.position) < catchDistance)
         {
             CatchPlayer();
@@ -86,21 +82,15 @@ public class GuardController : MonoBehaviour
     {
         isBribed = true;
         bribeTimer = bribeDuration;
-
-        // При взятке сбрасываем ошибки и ярость
         strikes = 0;
         followSpeed = 15f;
         currentDistance = normalDistance;
-
         if (guardRenderer != null) guardRenderer.material.color = Color.yellow;
     }
 
     public void OnPlayerHit()
     {
         strikes++;
-        Debug.Log("Ошибок подряд: " + strikes);
-
-        // Страж делает рывок вперед
         currentDistance -= lungeDistance;
         currentDistance = Mathf.Clamp(currentDistance, 0f, normalDistance);
     }
@@ -110,8 +100,18 @@ public class GuardController : MonoBehaviour
         if (strikes > 0)
         {
             strikes = 0;
-            followSpeed = 15f; // Возвращаем обычную скорость
+            followSpeed = 15f;
         }
+    }
+
+    // --- НОВЫЙ МЕТОД ДЛЯ ПРОДОЛЖЕНИЯ ИГРЫ ---
+    public void ResetChase()
+    {
+        isChasing = true;
+        strikes = 0;
+        currentDistance = normalDistance;
+        followSpeed = 15f;
+        isBribed = false;
     }
 
     void CatchPlayer()

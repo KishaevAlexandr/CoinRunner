@@ -1,38 +1,62 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro; // Обязательно для работы с текстом TextMeshPro
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    [Header("UI Настройки")]
+    [Header("UI Ссылки")]
     public GameObject gameOverPanel;
-    public TMP_Text finalCoinsText; // Ссылка на текст с монетами
+    public TMP_Text finalCoinsText;
+    public TMP_Text scoreText;
+    public TMP_Text timerText;
 
+    [Header("Игровые данные")]
     public int totalCoins = 0;
+    public int score = 0;
+    public float gameTime = 0f;
+    public float scoreMultiplier = 10f;
+
     private bool isGameOver = false;
+    private float scoreAccumulator = 0f; // Эта переменная теперь объявлена
 
     void Awake()
     {
-        // Настраиваем синглтон
-        if (Instance == null)
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
+
+    void Update()
+    {
+        // Принудительно обновляем текст каждый кадр (для надежности)
+        if (scoreText != null)
         {
-            Instance = this;
+            scoreText.text = "Очки: " + score;
         }
-        else
+
+        // Основная логика (только если игра идет)
+        if (!isGameOver && Time.timeScale > 0)
         {
-            Destroy(gameObject);
+            // Таймер
+            gameTime += Time.deltaTime;
+            if (timerText != null)
+            {
+                int minutes = Mathf.FloorToInt(gameTime / 60f);
+                int seconds = Mathf.FloorToInt(gameTime % 60f);
+                timerText.text = $"{minutes:00}:{seconds:00}";
+            }
+
+            // Начисление очков за время
+            scoreAccumulator += scoreMultiplier * Time.deltaTime;
+            score = Mathf.FloorToInt(scoreAccumulator);
         }
     }
 
     public void AddCoin(int amount)
     {
-        if (isGameOver) return; // Если игра кончена, монеты не собираются
+        if (isGameOver) return;
         totalCoins += amount;
-
-        // Здесь можно добавить обновление UI в реальном времени (счетчик в углу)
-        // Debug.Log("Монет собрано: " + totalCoins);
     }
 
     public bool SpendCoins(int amount)
@@ -45,37 +69,20 @@ public class GameManager : MonoBehaviour
         return false;
     }
 
-    // --- Метод окончания игры ---
     public void GameOver()
     {
-        if (isGameOver) return; // Защита от двойного вызова
+        if (isGameOver) return;
         isGameOver = true;
 
-        Debug.Log("Игра окончена! Игрок пойман.");
+        if (gameOverPanel != null) gameOverPanel.SetActive(true);
+        if (finalCoinsText != null) finalCoinsText.text = $"Монет собрано: {totalCoins}";
 
-        // 1. Показываем панель Game Over
-        if (gameOverPanel != null)
-        {
-            gameOverPanel.SetActive(true);
-        }
-
-        // 2. Обновляем текст с монетами
-        if (finalCoinsText != null)
-        {
-            // Используем интерполяцию строк для красивого вывода
-            finalCoinsText.text = $"Монет собрано: {totalCoins}";
-        }
-
-        // 3. Замораживаем игру (останавливаем время и физику)
         Time.timeScale = 0f;
     }
 
-    // --- Метод перезапуска ---
     public void RestartGame()
     {
-        Time.timeScale = 1f; // ОБЯЗАТЕЛЬНО возвращаем время перед перезагрузкой!
-
-        // Перезагружаем текущую сцену
+        Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
