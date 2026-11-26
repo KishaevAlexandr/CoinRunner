@@ -123,11 +123,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e40928268fb70b4439d0bb57c8dc39cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedZ: 9
-  speedX: 10
+  followSpeed: 15
   catchDistance: 1.5
-  followDistance: 3
+  normalDistance: 4
+  maxStrikes: 3
+  lungeDistance: 2
+  recoverSpeed: 1.5
   bribeDuration: 3
-  attentionLevel: 0
-  attentionIncrease: 25
-  attentionDecay: 5
