@@ -23,9 +23,6 @@ public class PlayerController : MonoBehaviour
     [Header("UI Ошибок")]
     public TMP_Text strikesText;
 
-    [Header("Визуализация")]
-    public GameObject coinBagPrefab; // Ссылка на префаб мешка с монетами
-
     private CharacterController controller;
     private Vector3 velocity;
     private int currentLane = 1;
@@ -40,11 +37,16 @@ public class PlayerController : MonoBehaviour
     private float speedMultiplier = 1f;
     private float safeTimer = 0f;
 
+    private float groundLevelY = 0f; // Запоминаем уровень земли
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
         originalHeight = controller.height;
         originalCenter = controller.center;
+
+        // Запоминаем начальную высоту (уровень земли)
+        groundLevelY = transform.position.y;
 
         if (strikesText != null) strikesText.text = "Ошибки: 0/3";
     }
@@ -52,6 +54,15 @@ public class PlayerController : MonoBehaviour
     void Update()
     {
         if (Time.timeScale == 0f) return;
+
+        // --- СТРАХОВКА ОТ ПРОВАЛИВАНИЯ ---
+        // Если игрок упал ниже земли на 5 метров, возвращаем его
+        if (transform.position.y < groundLevelY - 5f)
+        {
+            transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
+            velocity.y = 0;
+        }
+        // ---------------------------------
 
         HandleInput();
         MovePlayer();
