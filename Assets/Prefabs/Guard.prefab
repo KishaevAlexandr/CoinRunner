@@ -124,9 +124,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   followSpeed: 15
-  catchDistance: 1.5
+  catchDistance: 2.5
   normalDistance: 4
   maxStrikes: 3
   lungeDistance: 2
   recoverSpeed: 1.5
   bribeDuration: 3
+  strikes: 0

@@ -4,7 +4,7 @@ public class GuardController : MonoBehaviour
 {
     [Header("Настройки движения")]
     public float followSpeed = 15f;
-    public float catchDistance = 1.5f;
+    public float catchDistance = 2f; // Немного увеличили, чтобы поимка срабатывала надежнее
     public float normalDistance = 4f;
 
     [Header("Настройки наказания")]
@@ -36,11 +36,11 @@ public class GuardController : MonoBehaviour
 
     void Update()
     {
-        // --- ПРОВЕРКА НА ПАУЗУ ---
         if (Time.timeScale == 0f) return;
 
         if (!isChasing || player == null) return;
 
+        // Логика взятки
         if (isBribed)
         {
             bribeTimer -= Time.deltaTime;
@@ -52,26 +52,40 @@ public class GuardController : MonoBehaviour
             return;
         }
 
-        if (currentDistance < normalDistance && strikes < maxStrikes)
+        // --- ЛОГИКА ПОГОНИ ---
+
+        if (strikes < maxStrikes)
         {
-            currentDistance += recoverSpeed * Time.deltaTime;
-            currentDistance = Mathf.Min(currentDistance, normalDistance);
+            // Обычный режим: держим дистанцию
+            if (currentDistance < normalDistance)
+            {
+                currentDistance += recoverSpeed * Time.deltaTime;
+                currentDistance = Mathf.Min(currentDistance, normalDistance);
+            }
+
+            Vector3 targetPosition = new Vector3(
+                player.position.x,
+                transform.position.y,
+                player.position.z - currentDistance
+            );
+            transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
+        }
+        else
+        {
+            // Режим ЯРОСТИ: страж несется на игрока
+            if (guardRenderer != null) guardRenderer.material.color = Color.red;
+
+            // 1. Жестко синхронизируем позицию по X (чтобы он не отставал по полосам)
+            float newX = Mathf.Lerp(transform.position.x, player.position.x, 20f * Time.deltaTime);
+
+            // 2. Двигаемся по Z прямо на игрока с высокой скоростью (40)
+            float newZ = Mathf.MoveTowards(transform.position.z, player.position.z, 40f * Time.deltaTime);
+
+            // Применяем позицию
+            transform.position = new Vector3(newX, transform.position.y, newZ);
         }
 
-        if (strikes >= maxStrikes)
-        {
-            currentDistance = 0f;
-            followSpeed = 30f;
-        }
-
-        Vector3 targetPosition = new Vector3(
-            player.position.x,
-            transform.position.y,
-            player.position.z - currentDistance
-        );
-
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, followSpeed * Time.deltaTime);
-
+        // Проверка поимки (общая)
         if (Vector3.Distance(transform.position, player.position) < catchDistance)
         {
             CatchPlayer();
@@ -83,7 +97,6 @@ public class GuardController : MonoBehaviour
         isBribed = true;
         bribeTimer = bribeDuration;
         strikes = 0;
-        followSpeed = 15f;
         currentDistance = normalDistance;
         if (guardRenderer != null) guardRenderer.material.color = Color.yellow;
     }
@@ -100,17 +113,15 @@ public class GuardController : MonoBehaviour
         if (strikes > 0)
         {
             strikes = 0;
-            followSpeed = 15f;
+            if (guardRenderer != null) guardRenderer.material.color = Color.red;
         }
     }
 
-    // --- НОВЫЙ МЕТОД ДЛЯ ПРОДОЛЖЕНИЯ ИГРЫ ---
     public void ResetChase()
     {
         isChasing = true;
         strikes = 0;
         currentDistance = normalDistance;
-        followSpeed = 15f;
         isBribed = false;
     }
 

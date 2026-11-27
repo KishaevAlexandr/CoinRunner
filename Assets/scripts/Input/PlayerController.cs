@@ -37,7 +37,7 @@ public class PlayerController : MonoBehaviour
     private float speedMultiplier = 1f;
     private float safeTimer = 0f;
 
-    private float groundLevelY = 0f; // Запоминаем уровень земли
+    private float groundLevelY = 0f;
 
     void Start()
     {
@@ -45,7 +45,6 @@ public class PlayerController : MonoBehaviour
         originalHeight = controller.height;
         originalCenter = controller.center;
 
-        // Запоминаем начальную высоту (уровень земли)
         groundLevelY = transform.position.y;
 
         if (strikesText != null) strikesText.text = "Ошибки: 0/3";
@@ -55,14 +54,12 @@ public class PlayerController : MonoBehaviour
     {
         if (Time.timeScale == 0f) return;
 
-        // --- СТРАХОВКА ОТ ПРОВАЛИВАНИЯ (ГЛОБАЛЬНАЯ) ---
-        // Если игрок упал ниже земли на 5 метров, возвращаем его
+        // Страховка от проваливания
         if (transform.position.y < groundLevelY - 5f)
         {
             transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
             velocity.y = 0;
         }
-        // ---------------------------------------------
 
         HandleInput();
         MovePlayer();
@@ -75,7 +72,6 @@ public class PlayerController : MonoBehaviour
             if (guard != null)
             {
                 guard.OnPlayerSafe();
-
                 if (strikesText != null) strikesText.text = "Ошибки: 0/3";
             }
             safeTimer = 0f;
@@ -127,30 +123,29 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        // 1. Вычисляем движение по X (влево/вправо)
+        // 1. Вычисляем движение по X БЕЗ умножения на deltaTime
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
-        // 2. Логика гравитации и прыжка
+        // 2. Гравитация
         if (controller.isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f; // Прижимаем к земле для стабильности isGrounded
+            velocity.y = -2f;
         }
         velocity.y += gravity * Time.deltaTime;
 
-        // 3. ЖЕСТКАЯ ФИКСАЦИЯ ВЫСОТЫ (Защита от проваливания на ходу)
+        // 3. Фиксация высоты
         if (controller.isGrounded && velocity.y <= 0)
         {
             if (transform.position.y < groundLevelY)
             {
-                // Телепортируем на землю
                 transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
                 velocity.y = 0;
             }
         }
 
-        // 4. Итоговый вектор движения (умножаем на deltaTime в самом конце)
-        Vector3 move = new Vector3(xMove, velocity.y, forwardSpeed * speedMultiplier);
+        // 4. Движение (xMove / Time.deltaTime, чтобы компенсировать умножение в конце)
+        Vector3 move = new Vector3(xMove / Time.deltaTime, velocity.y, forwardSpeed * speedMultiplier);
         controller.Move(move * Time.deltaTime);
     }
 
