@@ -55,14 +55,14 @@ public class PlayerController : MonoBehaviour
     {
         if (Time.timeScale == 0f) return;
 
-        // --- СТРАХОВКА ОТ ПРОВАЛИВАНИЯ ---
+        // --- СТРАХОВКА ОТ ПРОВАЛИВАНИЯ (ГЛОБАЛЬНАЯ) ---
         // Если игрок упал ниже земли на 5 метров, возвращаем его
         if (transform.position.y < groundLevelY - 5f)
         {
             transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
             velocity.y = 0;
         }
-        // ---------------------------------
+        // ---------------------------------------------
 
         HandleInput();
         MovePlayer();
@@ -127,18 +127,31 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        float moveZ = forwardSpeed * speedMultiplier;
+        // 1. Вычисляем движение по X (влево/вправо)
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
+        // 2. Логика гравитации и прыжка
         if (controller.isGrounded && velocity.y < 0)
         {
-            velocity.y = -2f;
+            velocity.y = -2f; // Прижимаем к земле для стабильности isGrounded
         }
         velocity.y += gravity * Time.deltaTime;
 
-        Vector3 finalMove = new Vector3(xMove / Time.deltaTime, velocity.y, moveZ);
-        controller.Move(finalMove * Time.deltaTime);
+        // 3. ЖЕСТКАЯ ФИКСАЦИЯ ВЫСОТЫ (Защита от проваливания на ходу)
+        if (controller.isGrounded && velocity.y <= 0)
+        {
+            if (transform.position.y < groundLevelY)
+            {
+                // Телепортируем на землю
+                transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
+                velocity.y = 0;
+            }
+        }
+
+        // 4. Итоговый вектор движения (умножаем на deltaTime в самом конце)
+        Vector3 move = new Vector3(xMove, velocity.y, forwardSpeed * speedMultiplier);
+        controller.Move(move * Time.deltaTime);
     }
 
     void MoveLeft() { if (currentLane > 0) currentLane--; }
