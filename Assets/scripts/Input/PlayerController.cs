@@ -27,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private Vector3 velocity;
     private int currentLane = 1;
     private bool isSliding = false;
+    private bool isJumping = false; // Флаг для отслеживания прыжка
     private float slideTimer = 0f;
     private float originalHeight;
     private Vector3 originalCenter;
@@ -54,7 +55,7 @@ public class PlayerController : MonoBehaviour
     {
         if (Time.timeScale == 0f) return;
 
-        // Страховка от проваливания
+        // Страховка от проваливания (если игрок упал ниже земли на 5 метров)
         if (transform.position.y < groundLevelY - 5f)
         {
             transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
@@ -123,28 +124,25 @@ public class PlayerController : MonoBehaviour
 
     void MovePlayer()
     {
-        // 1. Вычисляем движение по X БЕЗ умножения на deltaTime
+        // 1. Движение по X (влево/вправо)
         float targetX = (currentLane - 1) * laneDistance;
         float xMove = Mathf.MoveTowards(transform.position.x, targetX, laneChangeSpeed * Time.deltaTime) - transform.position.x;
 
-        // 2. Гравитация
-        if (controller.isGrounded && velocity.y < 0)
-        {
-            velocity.y = -2f;
-        }
-        velocity.y += gravity * Time.deltaTime;
-
-        // 3. Фиксация высоты
+        // 2. Логика прыжка и гравитации
         if (controller.isGrounded && velocity.y <= 0)
         {
-            if (transform.position.y < groundLevelY)
-            {
-                transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
-                velocity.y = 0;
-            }
+            // Если на земле и не прыгаем, фиксируем высоту (защита от проваливания)
+            transform.position = new Vector3(transform.position.x, groundLevelY, transform.position.z);
+            velocity.y = 0;
+            isJumping = false;
+        }
+        else
+        {
+            // Если в воздухе, применяем гравитацию
+            velocity.y += gravity * Time.deltaTime;
         }
 
-        // 4. Движение (xMove / Time.deltaTime, чтобы компенсировать умножение в конце)
+        // 3. Итоговое движение
         Vector3 move = new Vector3(xMove / Time.deltaTime, velocity.y, forwardSpeed * speedMultiplier);
         controller.Move(move * Time.deltaTime);
     }
@@ -154,9 +152,11 @@ public class PlayerController : MonoBehaviour
 
     void Jump()
     {
-        if (controller.isGrounded && !isSliding)
+        // Прыгаем только если на земле, не в подкате и не в прыжке
+        if (controller.isGrounded && !isSliding && !isJumping)
         {
             velocity.y = Mathf.Sqrt(jumpForce * -2f * gravity);
+            isJumping = true;
         }
     }
 
